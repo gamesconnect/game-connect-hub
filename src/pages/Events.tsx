@@ -1,48 +1,27 @@
-import { Navigation } from '@/components/Navigation';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { Calendar, MapPin, Users, Clock } from 'lucide-react';
-
-const events = [
-  {
-    id: '1',
-    title: 'Akosombo Games Day',
-    date: '2025-06-14',
-    location: 'Akosombo, Ghana',
-    time: '7:00 AM - 6:00 PM',
-    image: 'https://res.cloudinary.com/drkjnrvtu/image/upload/v1742488676/cape-coast-flyer_bqx8md.jpg',
-    description: 'An action-packed day trip featuring outdoor games, team competitions, and boat activities at beautiful Lake Volta.',
-    category: 'Travel',
-    spots: 50,
-    price: 'GHS 350'
-  },
-  {
-    id: '2',
-    title: 'Friday Game Night',
-    date: '2025-02-07',
-    location: 'Accra, Ghana',
-    time: '6:00 PM - 10:00 PM',
-    image: 'https://res.cloudinary.com/drkjnrvtu/image/upload/v1746915398/_MG_2403_hknyss.jpg',
-    description: 'Join us for an exciting evening of board games, video games, and fun competitions with prizes!',
-    category: 'Gaming',
-    spots: 30,
-    price: 'GHS 50'
-  },
-  {
-    id: '3',
-    title: 'Cape Coast Adventure',
-    date: '2025-03-15',
-    location: 'Cape Coast, Ghana',
-    time: 'Full Day',
-    image: 'https://res.cloudinary.com/drkjnrvtu/image/upload/v1746918906/_MG_2027_oblrvo.jpg',
-    description: 'Explore the historic Cape Coast Castle, Kakum National Park canopy walkway, and enjoy beach activities.',
-    category: 'Travel',
-    spots: 40,
-    price: 'GHS 500'
-  }
-];
+import { Calendar, MapPin, Users, Clock, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { EventRegistrationModal } from '@/components/EventRegistrationModal';
 
 export default function Events() {
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  const { data: events, isLoading } = useQuery({
+    queryKey: ['events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('is_active', true)
+        .order('date', { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -63,61 +42,86 @@ export default function Events() {
       {/* Events Grid */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {events.map((event) => (
-              <div
-                key={event.id}
-                className="bg-card rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="relative">
-                  <img
-                    src={event.image}
-                    alt={event.title}
-                    className="w-full h-56 object-cover"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      {event.category}
-                    </span>
-                  </div>
-                  <div className="absolute top-4 right-4">
-                    <span className="bg-white/90 text-foreground px-3 py-1 rounded-full text-sm font-bold">
-                      {event.price}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-foreground mb-3">{event.title}</h3>
-                  <p className="text-muted-foreground mb-4 line-clamp-2">{event.description}</p>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="w-4 h-4 text-primary" />
-                      <span>{event.date}</span>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : events && events.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {events.map((event) => (
+                <div
+                  key={event.id}
+                  className="bg-card rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                >
+                  <div className="relative">
+                    <img
+                      src={event.image_url || 'https://res.cloudinary.com/drkjnrvtu/image/upload/v1746915398/_MG_2403_hknyss.jpg'}
+                      alt={event.title}
+                      className="w-full h-56 object-cover"
+                    />
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold">
+                        {event.category}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="w-4 h-4 text-secondary" />
-                      <span>{event.time}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="w-4 h-4 text-accent" />
-                      <span>{event.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Users className="w-4 h-4 text-green-500" />
-                      <span>{event.spots} spots available</span>
+                    <div className="absolute top-4 right-4">
+                      <span className="bg-white/90 text-foreground px-3 py-1 rounded-full text-sm font-bold">
+                        {event.currency} {event.price}
+                      </span>
                     </div>
                   </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-foreground mb-3">{event.title}</h3>
+                    <p className="text-muted-foreground mb-4 line-clamp-2">{event.description}</p>
+                    
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="w-4 h-4 text-primary" />
+                        <span>{new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                      </div>
+                      {event.time && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="w-4 h-4 text-secondary" />
+                          <span>{event.time}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPin className="w-4 h-4 text-accent" />
+                        <span>{event.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Users className="w-4 h-4 text-green-500" />
+                        <span>{event.spots} spots available</span>
+                      </div>
+                    </div>
 
-                  <Button className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full border-0">
-                    Register Now
-                  </Button>
+                    <Button 
+                      className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full border-0"
+                      onClick={() => setSelectedEventId(event.id)}
+                      disabled={event.spots <= 0}
+                    >
+                      {event.spots <= 0 ? 'Sold Out' : 'Register Now'}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">No upcoming events at the moment. Check back soon!</p>
+            </div>
+          )}
         </div>
       </section>
+
+      {/* Registration Modal */}
+      {selectedEventId && (
+        <EventRegistrationModal
+          isOpen={!!selectedEventId}
+          onClose={() => setSelectedEventId(null)}
+          eventId={selectedEventId}
+        />
+      )}
 
       {/* CTA Section */}
       <section className="py-16 bg-muted/30">
