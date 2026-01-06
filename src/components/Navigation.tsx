@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Home, Calendar, Trophy, Users, BookOpen, Mail } from 'lucide-react';
+import { Menu, X, Home, Calendar, Trophy, Users, BookOpen, Mail, LogIn, Settings } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { user, isAdmin, signOut } = useAuth();
 
   const navItems = [
     { name: 'Home', path: '/', icon: Home },
@@ -48,7 +50,30 @@ export const Navigation = () => {
                 {item.name.toUpperCase()}
               </Link>
             ))}
-            <div className="flex space-x-4">
+            <div className="flex items-center space-x-4">
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button size="sm" variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10">
+                    <Settings className="w-4 h-4 mr-1" /> Admin
+                  </Button>
+                </Link>
+              )}
+              {user ? (
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => signOut()}
+                  className="text-white/80 hover:text-white hover:bg-white/10"
+                >
+                  Sign Out
+                </Button>
+              ) : (
+                <Link to="/auth">
+                  <Button size="sm" variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10">
+                    <LogIn className="w-4 h-4 mr-1" /> Login
+                  </Button>
+                </Link>
+              )}
               <Link to="/events">
                 <Button size="sm" className="rounded-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-lg shadow-orange-500/25 text-white border-0">
                   Join the Journey
@@ -88,7 +113,31 @@ export const Navigation = () => {
                   {item.name.toUpperCase()}
                 </Link>
               ))}
-              <div className="px-3 py-2">
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="block px-3 py-2 text-white/80 hover:text-white"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Settings className="w-4 h-4 inline mr-2" /> Admin Dashboard
+                </Link>
+              )}
+              <div className="px-3 py-2 space-y-2">
+                {user ? (
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => { signOut(); setIsOpen(false); }}
+                  >
+                    Sign Out
+                  </Button>
+                ) : (
+                  <Link to="/auth" onClick={() => setIsOpen(false)}>
+                    <Button className="w-full" variant="outline">
+                      <LogIn className="w-4 h-4 mr-2" /> Login
+                    </Button>
+                  </Link>
+                )}
                 <Link to="/events" onClick={() => setIsOpen(false)}>
                   <Button className="w-full rounded-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0">
                     Join the Journey
