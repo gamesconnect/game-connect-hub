@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      blog_posts: {
+        Row: {
+          author: string
+          category: string
+          content: string | null
+          created_at: string
+          excerpt: string
+          id: string
+          image_url: string | null
+          is_published: boolean
+          read_time: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author?: string
+          category: string
+          content?: string | null
+          created_at?: string
+          excerpt: string
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          read_time?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          category?: string
+          content?: string | null
+          created_at?: string
+          excerpt?: string
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          read_time?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          is_read: boolean
+          last_name: string
+          message: string
+          phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          is_read?: boolean
+          last_name: string
+          message: string
+          phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          is_read?: boolean
+          last_name?: string
+          message?: string
+          phone?: string | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           category: string
@@ -62,6 +137,27 @@ export type Database = {
           time?: string | null
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      newsletter_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
         }
         Relationships: []
       }
@@ -145,6 +241,35 @@ export type Database = {
           },
         ]
       }
+      team_achievements: {
+        Row: {
+          achievement: string
+          created_at: string
+          id: string
+          team_id: string
+        }
+        Insert: {
+          achievement: string
+          created_at?: string
+          id?: string
+          team_id: string
+        }
+        Update: {
+          achievement?: string
+          created_at?: string
+          id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_achievements_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           bio: string | null
@@ -187,6 +312,106 @@ export type Database = {
           social_linkedin?: string | null
           social_twitter?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      team_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_memberships_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_stats: {
+        Row: {
+          id: string
+          members_count: number
+          team_id: string
+          updated_at: string
+          wins: number
+        }
+        Insert: {
+          id?: string
+          members_count?: number
+          team_id: string
+          updated_at?: string
+          wins?: number
+        }
+        Update: {
+          id?: string
+          members_count?: number
+          team_id?: string
+          updated_at?: string
+          wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_stats_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          bg_color: string
+          border_color: string
+          color_from: string
+          color_to: string
+          created_at: string
+          description: string
+          emoji: string
+          id: string
+          name: string
+          tagline: string
+        }
+        Insert: {
+          bg_color: string
+          border_color: string
+          color_from: string
+          color_to: string
+          created_at?: string
+          description: string
+          emoji: string
+          id?: string
+          name: string
+          tagline: string
+        }
+        Update: {
+          bg_color?: string
+          border_color?: string
+          color_from?: string
+          color_to?: string
+          created_at?: string
+          description?: string
+          emoji?: string
+          id?: string
+          name?: string
+          tagline?: string
         }
         Relationships: []
       }

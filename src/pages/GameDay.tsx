@@ -1,7 +1,11 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { Calendar, MapPin, Trophy, Users, Clock, Gamepad2 } from 'lucide-react';
+import { Calendar, MapPin, Trophy, Users, Clock, Gamepad2, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { EventRegistrationModal } from '@/components/EventRegistrationModal';
 
 const gameDayFeatures = [
   {
@@ -23,17 +27,6 @@ const gameDayFeatures = [
     icon: Clock,
     title: 'Full Day of Fun',
     description: 'Non-stop entertainment from morning to evening with breaks for food and drinks.'
-  }
-];
-
-const upcomingGameDays = [
-  {
-    title: 'Akosombo Games Day',
-    date: 'June 14, 2025',
-    location: 'Akosombo, Ghana',
-    image: 'https://res.cloudinary.com/drkjnrvtu/image/upload/v1742488676/cape-coast-flyer_bqx8md.jpg',
-    games: ['Archery', 'Volleyball', 'Boat Races', 'Tug of War', 'Board Games'],
-    spots: 50
   }
 ];
 
@@ -62,6 +55,24 @@ const pastHighlights = [
 ];
 
 export default function GameDay() {
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  // Fetch Game Day events from the database
+  const { data: gameDayEvents, isLoading } = useQuery({
+    queryKey: ['game-day-events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('is_active', true)
+        .eq('category', 'Game Day')
+        .order('date', { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -116,56 +127,88 @@ export default function GameDay() {
             </p>
           </div>
 
-          {upcomingGameDays.map((gameDay) => (
-            <div
-              key={gameDay.title}
-              className="bg-card rounded-3xl overflow-hidden shadow-lg grid md:grid-cols-2"
-            >
-              <img
-                src={gameDay.image}
-                alt={gameDay.title}
-                className="w-full h-full object-cover min-h-[300px]"
-              />
-              <div className="p-8 flex flex-col justify-center">
-                <h3 className="text-3xl font-black text-foreground mb-4">{gameDay.title}</h3>
-                
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="w-5 h-5 text-primary" />
-                    <span>{gameDay.date}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="w-5 h-5 text-secondary" />
-                    <span>{gameDay.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Users className="w-5 h-5 text-green-500" />
-                    <span>{gameDay.spots} spots available</span>
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <h4 className="font-semibold text-foreground mb-2">Games Include:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {gameDay.games.map((game) => (
-                      <span
-                        key={game}
-                        className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
-                      >
-                        {game}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <Button className="w-fit bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full px-8 border-0">
-                  Register Now
-                </Button>
-              </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-          ))}
+          ) : gameDayEvents && gameDayEvents.length > 0 ? (
+            <div className="space-y-8">
+              {gameDayEvents.map((gameDay) => (
+                <div
+                  key={gameDay.id}
+                  className="bg-card rounded-3xl overflow-hidden shadow-lg grid md:grid-cols-2"
+                >
+                  <img
+                    src={gameDay.image_url || 'https://res.cloudinary.com/drkjnrvtu/image/upload/v1742488676/cape-coast-flyer_bqx8md.jpg'}
+                    alt={gameDay.title}
+                    className="w-full h-full object-cover min-h-[300px]"
+                  />
+                  <div className="p-8 flex flex-col justify-center">
+                    <h3 className="text-3xl font-black text-foreground mb-4">{gameDay.title}</h3>
+                    
+                    {gameDay.description && (
+                      <p className="text-muted-foreground mb-4">{gameDay.description}</p>
+                    )}
+                    
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Calendar className="w-5 h-5 text-primary" />
+                        <span>{new Date(gameDay.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                      </div>
+                      {gameDay.time && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Clock className="w-5 h-5 text-secondary" />
+                          <span>{gameDay.time}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <MapPin className="w-5 h-5 text-accent" />
+                        <span>{gameDay.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Users className="w-5 h-5 text-green-500" />
+                        <span>{gameDay.spots} spots available</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 mb-6">
+                      <span className="text-2xl font-bold text-primary">
+                        {gameDay.currency} {gameDay.price}
+                      </span>
+                    </div>
+
+                    <Button 
+                      className="w-fit bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full px-8 border-0"
+                      onClick={() => setSelectedEventId(gameDay.id)}
+                      disabled={gameDay.spots <= 0}
+                    >
+                      {gameDay.spots <= 0 ? 'Sold Out' : 'Register Now'}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-card rounded-3xl">
+              <p className="text-muted-foreground text-lg mb-4">No upcoming Game Days scheduled yet.</p>
+              <Link to="/events">
+                <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full px-8 border-0">
+                  View All Events
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
+
+      {/* Registration Modal */}
+      {selectedEventId && (
+        <EventRegistrationModal
+          isOpen={!!selectedEventId}
+          onClose={() => setSelectedEventId(null)}
+          eventId={selectedEventId}
+        />
+      )}
 
       {/* Past Highlights */}
       <section className="py-16">

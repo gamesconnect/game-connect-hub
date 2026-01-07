@@ -1,60 +1,124 @@
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import { Trophy, Users, Star, Target } from 'lucide-react';
-
-const teams = [
-  {
-    name: 'Team Red',
-    emoji: '🔥',
-    tagline: 'Fire & Passion',
-    description: 'Known for their fierce competitive spirit and unwavering determination. Team Red never backs down from a challenge.',
-    members: 485,
-    wins: 127,
-    color: 'from-red-500 to-red-600',
-    bgColor: 'bg-red-500/10',
-    borderColor: 'border-red-500/30',
-    achievements: ['Most Improved Team 2024', 'Gaming Tournament Champions', 'Best Team Spirit Award']
-  },
-  {
-    name: 'Team Yellow',
-    emoji: '⚡',
-    tagline: 'Lightning Speed',
-    description: 'Quick thinking and faster reflexes. Team Yellow strikes with precision and speed that catches opponents off guard.',
-    members: 423,
-    wins: 134,
-    color: 'from-yellow-400 to-yellow-500',
-    bgColor: 'bg-yellow-500/10',
-    borderColor: 'border-yellow-500/30',
-    achievements: ['Speed Challenge Winners', 'Trivia Night Champions', 'Innovation Award']
-  },
-  {
-    name: 'Team Green',
-    emoji: '🌿',
-    tagline: "Nature's Force",
-    description: 'Grounded, strategic, and always growing. Team Green brings a calm strength that overwhelms the competition.',
-    members: 467,
-    wins: 119,
-    color: 'from-green-500 to-green-600',
-    bgColor: 'bg-green-500/10',
-    borderColor: 'border-green-500/30',
-    achievements: ['Outdoor Games Champions', 'Most Collaborative Team', 'Sustainability Award']
-  },
-  {
-    name: 'Team Blue',
-    emoji: '🌊',
-    tagline: 'Ocean Deep',
-    description: 'Deep thinkers with waves of creativity. Team Blue brings strategic depth and unstoppable momentum.',
-    members: 512,
-    wins: 142,
-    color: 'from-blue-500 to-blue-600',
-    bgColor: 'bg-blue-500/10',
-    borderColor: 'border-blue-500/30',
-    achievements: ['Overall Champions 2024', 'Most Members', 'Strategy Masters']
-  }
-];
+import { Trophy, Users, Star, Target, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 export default function Teams() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [joiningTeamId, setJoiningTeamId] = useState<string | null>(null);
+
+  // Fetch teams with stats and achievements
+  const { data: teams, isLoading } = useQuery({
+    queryKey: ['teams-with-details'],
+    queryFn: async () => {
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .order('name');
+      
+      if (teamsError) throw teamsError;
+
+      const { data: statsData, error: statsError } = await supabase
+        .from('team_stats')
+        .select('*');
+      
+      if (statsError) throw statsError;
+
+      const { data: achievementsData, error: achievementsError } = await supabase
+        .from('team_achievements')
+        .select('*');
+      
+      if (achievementsError) throw achievementsError;
+
+      return teamsData.map(team => ({
+        ...team,
+        stats: statsData.find(s => s.team_id === team.id) || { wins: 0, members_count: 0 },
+        achievements: achievementsData.filter(a => a.team_id === team.id).map(a => a.achievement)
+      }));
+    },
+  });
+
+  // Fetch user's current team membership
+  const { data: userMembership } = useQuery({
+    queryKey: ['user-team-membership', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('team_memberships')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Join team mutation
+  const joinTeamMutation = useMutation({
+    mutationFn: async (teamId: string) => {
+      if (!user) throw new Error('Must be logged in');
+      
+      // If already in a team, leave first
+      if (userMembership) {
+        const { error: deleteError } = await supabase
+          .from('team_memberships')
+          .delete()
+          .eq('user_id', user.id);
+        if (deleteError) throw deleteError;
+      }
+
+      const { error } = await supabase
+        .from('team_memberships')
+        .insert({ user_id: user.id, team_id: teamId });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-team-membership'] });
+      queryClient.invalidateQueries({ queryKey: ['teams-with-details'] });
+      toast({
+        title: 'Team Joined!',
+        description: 'Welcome to the team! Get ready to compete.',
+      });
+      setJoiningTeamId(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to Join Team',
+        description: error.message,
+        variant: 'destructive',
+      });
+      setJoiningTeamId(null);
+    },
+  });
+
+  const handleJoinTeam = (teamId: string) => {
+    if (!user) {
+      toast({
+        title: 'Login Required',
+        description: 'Please login to join a team.',
+      });
+      navigate('/auth');
+      return;
+    }
+    setJoiningTeamId(teamId);
+    joinTeamMutation.mutate(teamId);
+  };
+
+  const getColorClasses = (colorFrom: string, colorTo: string) => {
+    return `from-${colorFrom} to-${colorTo}`;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -68,6 +132,14 @@ export default function Teams() {
             <p className="text-xl text-white/80 max-w-2xl mx-auto">
               Join one of our four legendary teams and compete for glory, prizes, and eternal bragging rights!
             </p>
+            {userMembership && teams && (
+              <div className="mt-4 inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full">
+                <span className="text-white/80">You're on:</span>
+                <span className="font-bold text-white">
+                  {teams.find(t => t.id === userMembership.team_id)?.name}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -75,66 +147,97 @@ export default function Teams() {
       {/* Teams Grid */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-8">
-            {teams.map((team) => (
-              <div
-                key={team.name}
-                className={`rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border ${team.borderColor} ${team.bgColor}`}
-              >
-                <div className="p-8">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="text-6xl">{team.emoji}</div>
-                    <div>
-                      <h3 className={`text-3xl font-black bg-gradient-to-r ${team.color} bg-clip-text text-transparent`}>
-                        {team.name}
-                      </h3>
-                      <p className="text-lg text-muted-foreground">{team.tagline}</p>
-                    </div>
-                  </div>
-
-                  <p className="text-muted-foreground mb-6">{team.description}</p>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-card rounded-2xl p-4 text-center">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <Users className="w-5 h-5 text-primary" />
-                        <span className="text-2xl font-bold text-foreground">{team.members}</span>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-8">
+              {teams?.map((team) => {
+                const isUserTeam = userMembership?.team_id === team.id;
+                const isJoining = joiningTeamId === team.id;
+                
+                return (
+                  <div
+                    key={team.id}
+                    className={`rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border ${team.border_color} ${team.bg_color} ${isUserTeam ? 'ring-2 ring-primary' : ''}`}
+                  >
+                    <div className="p-8">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="text-6xl">{team.emoji}</div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className={`text-3xl font-black bg-gradient-to-r from-${team.color_from} to-${team.color_to} bg-clip-text text-transparent`}>
+                              {team.name}
+                            </h3>
+                            {isUserTeam && (
+                              <span className="bg-primary text-white text-xs px-2 py-1 rounded-full">Your Team</span>
+                            )}
+                          </div>
+                          <p className="text-lg text-muted-foreground">{team.tagline}</p>
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">Members</p>
-                    </div>
-                    <div className="bg-card rounded-2xl p-4 text-center">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <Trophy className="w-5 h-5 text-yellow-500" />
-                        <span className="text-2xl font-bold text-foreground">{team.wins}</span>
+
+                      <p className="text-muted-foreground mb-6">{team.description}</p>
+
+                      {/* Stats */}
+                      <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="bg-card rounded-2xl p-4 text-center">
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            <Users className="w-5 h-5 text-primary" />
+                            <span className="text-2xl font-bold text-foreground">{team.stats.members_count}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">Members</p>
+                        </div>
+                        <div className="bg-card rounded-2xl p-4 text-center">
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            <Trophy className="w-5 h-5 text-yellow-500" />
+                            <span className="text-2xl font-bold text-foreground">{team.stats.wins}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">Wins</p>
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">Wins</p>
+
+                      {/* Achievements */}
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                          <Star className="w-4 h-4 text-yellow-500" />
+                          Achievements
+                        </h4>
+                        <ul className="space-y-2">
+                          {team.achievements.map((achievement: string) => (
+                            <li key={achievement} className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Target className="w-3 h-3 text-primary" />
+                              {achievement}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <Button 
+                        className={`w-full bg-gradient-to-r from-${team.color_from} to-${team.color_to} hover:opacity-90 text-white rounded-full border-0`}
+                        onClick={() => handleJoinTeam(team.id)}
+                        disabled={isJoining || isUserTeam}
+                      >
+                        {isJoining ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Joining...
+                          </>
+                        ) : isUserTeam ? (
+                          'Your Current Team'
+                        ) : userMembership ? (
+                          `Switch to ${team.name}`
+                        ) : (
+                          `Join ${team.name}`
+                        )}
+                      </Button>
                     </div>
                   </div>
-
-                  {/* Achievements */}
-                  <div className="mb-6">
-                    <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                      <Star className="w-4 h-4 text-yellow-500" />
-                      Achievements
-                    </h4>
-                    <ul className="space-y-2">
-                      {team.achievements.map((achievement) => (
-                        <li key={achievement} className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Target className="w-3 h-3 text-primary" />
-                          {achievement}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <Button className={`w-full bg-gradient-to-r ${team.color} hover:opacity-90 text-white rounded-full border-0`}>
-                    Join {team.name}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
