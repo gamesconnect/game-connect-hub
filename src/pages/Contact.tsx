@@ -1,10 +1,90 @@
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Phone, Mail, MessageCircle } from 'lucide-react';
+import { MapPin, Phone, Mail, MessageCircle, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { z } from 'zod';
+
+const contactSchema = z.object({
+  firstName: z.string().trim().min(2, 'First name is required').max(50),
+  lastName: z.string().trim().min(2, 'Last name is required').max(50),
+  email: z.string().trim().email('Invalid email address').max(255),
+  phone: z.string().optional(),
+  message: z.string().trim().min(10, 'Message must be at least 10 characters').max(2000),
+});
+
+type ContactFormData = z.infer<typeof contactSchema>;
 
 export default function Contact() {
+  const { toast } = useToast();
+  const [formData, setFormData] = useState<ContactFormData>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    message: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const submitMutation = useMutation({
+    mutationFn: async (data: ContactFormData) => {
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert({
+          first_name: data.firstName.trim(),
+          last_name: data.lastName.trim(),
+          email: data.email.trim().toLowerCase(),
+          phone: data.phone?.trim() || null,
+          message: data.message.trim(),
+        });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Message Sent!',
+        description: 'Thank you for reaching out. We will get back to you soon.',
+      });
+      setFormData({ firstName: '', lastName: '', email: '', phone: '', message: '' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to Send Message',
+        description: error.message || 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleInputChange = (field: keyof ContactFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const result = contactSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach(err => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+    
+    submitMutation.mutate(formData);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -29,31 +109,73 @@ export default function Contact() {
             {/* Contact Form */}
             <div className="bg-card rounded-3xl p-8 shadow-lg">
               <h2 className="text-2xl font-black text-foreground mb-6">Send us a Message</h2>
-              <form className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">First Name</label>
-                    <Input placeholder="John" className="rounded-xl" />
+                    <Input 
+                      placeholder="John" 
+                      className={`rounded-xl ${errors.firstName ? 'border-destructive' : ''}`}
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                    />
+                    {errors.firstName && <p className="text-sm text-destructive mt-1">{errors.firstName}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">Last Name</label>
-                    <Input placeholder="Doe" className="rounded-xl" />
+                    <Input 
+                      placeholder="Doe" 
+                      className={`rounded-xl ${errors.lastName ? 'border-destructive' : ''}`}
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                    />
+                    {errors.lastName && <p className="text-sm text-destructive mt-1">{errors.lastName}</p>}
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Email</label>
-                  <Input type="email" placeholder="john@example.com" className="rounded-xl" />
+                  <Input 
+                    type="email" 
+                    placeholder="john@example.com" 
+                    className={`rounded-xl ${errors.email ? 'border-destructive' : ''}`}
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                  />
+                  {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Phone</label>
-                  <Input placeholder="+233 XX XXX XXXX" className="rounded-xl" />
+                  <label className="block text-sm font-medium text-foreground mb-2">Phone (Optional)</label>
+                  <Input 
+                    placeholder="+233 XX XXX XXXX" 
+                    className="rounded-xl"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Message</label>
-                  <Textarea placeholder="Tell us how we can help..." rows={5} className="rounded-xl" />
+                  <Textarea 
+                    placeholder="Tell us how we can help..." 
+                    rows={5} 
+                    className={`rounded-xl ${errors.message ? 'border-destructive' : ''}`}
+                    value={formData.message}
+                    onChange={(e) => handleInputChange('message', e.target.value)}
+                  />
+                  {errors.message && <p className="text-sm text-destructive mt-1">{errors.message}</p>}
                 </div>
-                <Button className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full border-0">
-                  Send Message
+                <Button 
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full border-0"
+                  disabled={submitMutation.isPending}
+                >
+                  {submitMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    'Send Message'
+                  )}
                 </Button>
               </form>
             </div>
