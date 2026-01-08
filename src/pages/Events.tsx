@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Users, Clock, Loader2 } from 'lucide-react';
@@ -49,9 +50,10 @@ export default function Events() {
           ) : events && events.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {events.map((event) => (
-                <div
+                <Link
                   key={event.id}
-                  className="bg-card rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                  to={`/events/${event.id}`}
+                  className="bg-card rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 block"
                 >
                   <div className="relative">
                     <img
@@ -97,13 +99,16 @@ export default function Events() {
 
                     <Button 
                       className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full border-0"
-                      onClick={() => setSelectedEventId(event.id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setSelectedEventId(event.id);
+                      }}
                       disabled={event.spots <= 0}
                     >
                       {event.spots <= 0 ? 'Sold Out' : 'Register Now'}
                     </Button>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (

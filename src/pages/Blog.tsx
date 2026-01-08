@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -111,37 +112,39 @@ export default function Blog() {
               {/* Featured Post */}
               {featuredPost && (
                 <div className="mb-16">
-                  <div className="bg-card rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 grid md:grid-cols-2">
-                    <img
-                      src={featuredPost.image_url || 'https://res.cloudinary.com/drkjnrvtu/image/upload/v1746915398/_MG_2403_hknyss.jpg'}
-                      alt={featuredPost.title}
-                      className="w-full h-full object-cover min-h-[300px]"
-                    />
-                    <div className="p-8 flex flex-col justify-center">
-                      <span className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold mb-4 w-fit">
-                        {featuredPost.category}
-                      </span>
-                      <h2 className="text-3xl font-black text-foreground mb-4">{featuredPost.title}</h2>
-                      <p className="text-muted-foreground mb-6">{featuredPost.excerpt}</p>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
-                        <div className="flex items-center gap-1">
-                          <User className="w-4 h-4" />
-                          <span>{featuredPost.author}</span>
+                  <Link to={`/blog/${featuredPost.id}`} className="block">
+                    <div className="bg-card rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 grid md:grid-cols-2">
+                      <img
+                        src={featuredPost.image_url || 'https://res.cloudinary.com/drkjnrvtu/image/upload/v1746915398/_MG_2403_hknyss.jpg'}
+                        alt={featuredPost.title}
+                        className="w-full h-full object-cover min-h-[300px]"
+                      />
+                      <div className="p-8 flex flex-col justify-center">
+                        <span className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold mb-4 w-fit">
+                          {featuredPost.category}
+                        </span>
+                        <h2 className="text-3xl font-black text-foreground mb-4">{featuredPost.title}</h2>
+                        <p className="text-muted-foreground mb-6">{featuredPost.excerpt}</p>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
+                          <div className="flex items-center gap-1">
+                            <User className="w-4 h-4" />
+                            <span>{featuredPost.author}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            <span>{formatDate(featuredPost.created_at)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            <span>{featuredPost.read_time}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          <span>{formatDate(featuredPost.created_at)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>{featuredPost.read_time}</span>
-                        </div>
+                        <Button className="w-fit bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full px-6 border-0">
+                          Read More <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
                       </div>
-                      <Button className="w-fit bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full px-6 border-0">
-                        Read More <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
                     </div>
-                  </div>
+                  </Link>
                 </div>
               )}
 
@@ -149,9 +152,10 @@ export default function Blog() {
               {otherPosts.length > 0 && (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {otherPosts.map((post) => (
-                    <div
+                    <Link
                       key={post.id}
-                      className="bg-card rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                      to={`/blog/${post.id}`}
+                      className="bg-card rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 block"
                     >
                       <img
                         src={post.image_url || 'https://res.cloudinary.com/drkjnrvtu/image/upload/v1746915398/_MG_2403_hknyss.jpg'}
@@ -172,7 +176,7 @@ export default function Blog() {
                           <span>{post.read_time}</span>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
