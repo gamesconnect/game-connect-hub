@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/button';
 import { EventsManager } from '@/components/admin/EventsManager';
 import { RegistrationsManager } from '@/components/admin/RegistrationsManager';
 import { TeamMembersManager } from '@/components/admin/TeamMembersManager';
-import { Loader2, LogOut, Calendar, Users, ClipboardList, LayoutDashboard } from 'lucide-react';
+import { BlogPostsManager } from '@/components/admin/BlogPostsManager';
+import { ContactMessagesManager } from '@/components/admin/ContactMessagesManager';
+import { NewsletterSubscribersManager } from '@/components/admin/NewsletterSubscribersManager';
+import { Loader2, LogOut, Calendar, Users, ClipboardList, LayoutDashboard, FileText, MessageSquare, Mail } from 'lucide-react';
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -62,7 +65,7 @@ export default function Admin() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-8 px-6">
         <Tabs defaultValue="events" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 lg:w-auto lg:inline-grid">
             <TabsTrigger value="events" className="gap-2">
               <Calendar className="w-4 h-4" />
               <span className="hidden sm:inline">Events</span>
@@ -74,6 +77,18 @@ export default function Admin() {
             <TabsTrigger value="team" className="gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Team</span>
+            </TabsTrigger>
+            <TabsTrigger value="blog" className="gap-2">
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">Blog</span>
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="gap-2">
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">Messages</span>
+            </TabsTrigger>
+            <TabsTrigger value="newsletter" className="gap-2">
+              <Mail className="w-4 h-4" />
+              <span className="hidden sm:inline">Newsletter</span>
             </TabsTrigger>
           </TabsList>
 
@@ -87,6 +102,18 @@ export default function Admin() {
 
           <TabsContent value="team">
             <TeamMembersManager />
+          </TabsContent>
+
+          <TabsContent value="blog">
+            <BlogPostsManager />
+          </TabsContent>
+
+          <TabsContent value="messages">
+            <ContactMessagesManager />
+          </TabsContent>
+
+          <TabsContent value="newsletter">
+            <NewsletterSubscribersManager />
           </TabsContent>
         </Tabs>
       </main>

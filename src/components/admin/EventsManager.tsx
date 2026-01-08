@@ -9,6 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
+import { useImageUpload } from '@/hooks/useImageUpload';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
@@ -48,6 +50,11 @@ export function EventsManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [formData, setFormData] = useState<EventFormData>(initialFormData);
+
+  const imageUpload = useImageUpload({
+    bucket: 'events',
+    onSuccess: (url) => setFormData((prev) => ({ ...prev, image_url: url })),
+  });
 
   const { data: events, isLoading } = useQuery({
     queryKey: ['admin-events'],
@@ -109,6 +116,7 @@ export function EventsManager() {
     setIsDialogOpen(false);
     setEditingEvent(null);
     setFormData(initialFormData);
+    imageUpload.clearPreview();
   };
 
   const openEditDialog = (event: Event) => {
@@ -250,15 +258,15 @@ export function EventsManager() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="image_url">Image URL</Label>
-                <Input
-                  id="image_url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://..."
-                />
-              </div>
+              <ImageUpload
+                label="Event Image"
+                value={formData.image_url}
+                onChange={(url) => setFormData({ ...formData, image_url: url })}
+                onFileSelect={imageUpload.handleFileChange}
+                isUploading={imageUpload.isUploading}
+                preview={imageUpload.preview}
+                clearPreview={imageUpload.clearPreview}
+              />
 
               <div className="flex items-center space-x-2">
                 <Switch
