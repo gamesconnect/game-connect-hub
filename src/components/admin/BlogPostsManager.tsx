@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useImageUpload } from '@/hooks/useImageUpload';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -53,6 +55,11 @@ export function BlogPostsManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [formData, setFormData] = useState<BlogPostFormData>(initialFormData);
+
+  const imageUpload = useImageUpload({
+    bucket: 'blog-posts',
+    onSuccess: (url) => setFormData((prev) => ({ ...prev, image_url: url })),
+  });
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ['admin-blog-posts'],
@@ -136,6 +143,7 @@ export function BlogPostsManager() {
     setIsDialogOpen(false);
     setEditingPost(null);
     setFormData(initialFormData);
+    imageUpload.clearPreview();
   };
 
   const openEditDialog = (post: BlogPost) => {
@@ -238,16 +246,15 @@ export function BlogPostsManager() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="image_url">Image URL</Label>
-                <Input
-                  id="image_url"
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://..."
-                />
-              </div>
+              <ImageUpload
+                label="Featured Image"
+                value={formData.image_url}
+                onChange={(url) => setFormData({ ...formData, image_url: url })}
+                onFileSelect={imageUpload.handleFileChange}
+                isUploading={imageUpload.isUploading}
+                preview={imageUpload.preview}
+                clearPreview={imageUpload.clearPreview}
+              />
               <div className="space-y-2">
                 <Label htmlFor="read_time">Read Time</Label>
                 <Input
