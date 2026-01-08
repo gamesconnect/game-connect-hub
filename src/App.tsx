@@ -7,8 +7,10 @@ import { AuthProvider } from "./hooks/useAuth";
 import { Navigation } from "./components/Navigation";
 import HomePage from "./pages/HomePage";
 import Events from "./pages/Events";
+import EventDetail from "./pages/EventDetail";
 import Teams from "./pages/Teams";
 import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import Contact from "./pages/Contact";
 import GameDay from "./pages/GameDay";
 import Auth from "./pages/Auth";
@@ -36,8 +38,10 @@ const App = () => (
             {/* Public Routes */}
             <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
             <Route path="/events" element={<MainLayout><Events /></MainLayout>} />
+            <Route path="/events/:id" element={<MainLayout><EventDetail /></MainLayout>} />
             <Route path="/teams" element={<MainLayout><Teams /></MainLayout>} />
             <Route path="/blog" element={<MainLayout><Blog /></MainLayout>} />
+            <Route path="/blog/:id" element={<MainLayout><BlogPost /></MainLayout>} />
             <Route path="/contact" element={<MainLayout><Contact /></MainLayout>} />
             <Route path="/game-day" element={<MainLayout><GameDay /></MainLayout>} />
             <Route path="/auth" element={<Auth />} />
