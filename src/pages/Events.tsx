@@ -17,7 +17,7 @@ export default function Events() {
         .from('events')
         .select('*')
         .eq('is_active', true)
-        .order('date', { ascending: true });
+        .order('date', { ascending: false });
       
       if (error) throw error;
       return data;
