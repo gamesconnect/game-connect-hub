@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { DashboardOverview } from '@/components/admin/DashboardOverview';
 import { EventsManager } from '@/components/admin/EventsManager';
 import { RegistrationsManager } from '@/components/admin/RegistrationsManager';
 import { TeamMembersManager } from '@/components/admin/TeamMembersManager';
 import { BlogPostsManager } from '@/components/admin/BlogPostsManager';
 import { ContactMessagesManager } from '@/components/admin/ContactMessagesManager';
 import { NewsletterSubscribersManager } from '@/components/admin/NewsletterSubscribersManager';
-import { Loader2, LogOut, Calendar, Users, ClipboardList, LayoutDashboard, FileText, MessageSquare, Mail } from 'lucide-react';
+import { Loader2, LogOut, Calendar, Users, ClipboardList, LayoutDashboard, FileText, MessageSquare, Mail, BarChart3 } from 'lucide-react';
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -64,8 +65,12 @@ export default function Admin() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-8 px-6">
-        <Tabs defaultValue="events" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 lg:w-auto lg:inline-grid">
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="overview" className="gap-2">
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
             <TabsTrigger value="events" className="gap-2">
               <Calendar className="w-4 h-4" />
               <span className="hidden sm:inline">Events</span>
@@ -91,6 +96,10 @@ export default function Admin() {
               <span className="hidden sm:inline">Newsletter</span>
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="overview">
+            <DashboardOverview />
+          </TabsContent>
 
           <TabsContent value="events">
             <EventsManager />
