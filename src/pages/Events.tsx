@@ -97,16 +97,24 @@ export default function Events() {
                       </div>
                     </div>
 
-                    <Button 
-                      className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full border-0"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setSelectedEventId(event.id);
-                      }}
-                      disabled={event.spots <= 0}
-                    >
-                      {event.spots <= 0 ? 'Sold Out' : 'Register Now'}
-                    </Button>
+                    {(() => {
+                      const isPastEvent = new Date(event.date) < new Date();
+                      const isSoldOut = event.spots <= 0;
+                      const isDisabled = isPastEvent || isSoldOut;
+                      
+                      return (
+                        <Button 
+                          className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full border-0"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSelectedEventId(event.id);
+                          }}
+                          disabled={isDisabled}
+                        >
+                          {isPastEvent ? 'Event Ended' : isSoldOut ? 'Sold Out' : 'Get Tickets'}
+                        </Button>
+                      );
+                    })()}
                   </div>
                 </Link>
               ))}
