@@ -136,18 +136,28 @@ export function EventRegistrationModal({ isOpen, onClose, eventId }: EventRegist
       if (error) throw error;
 
       if (data.success) {
-        toast({
-          title: 'Registration Successful!',
-          description: 'Your payment has been processed. Check your phone for confirmation.',
-        });
-        onClose();
-        setFormData({ fullName: '', email: '', phone: '', network: '' });
-        setQuantity(1);
-        setSelectedTierId(null);
+        if (data.paymentStatus === 'completed') {
+          toast({
+            title: 'Payment Successful! 🎉',
+            description: 'Your registration is confirmed. Check your email for details.',
+          });
+          onClose();
+          setFormData({ fullName: '', email: '', phone: '', network: '' });
+          setQuantity(1);
+          setSelectedTierId(null);
+        } else if (data.paymentStatus === 'pending') {
+          toast({
+            title: 'Payment Pending 📱',
+            description: data.message || 'Please check your phone and approve the payment prompt to complete registration.',
+            duration: 10000, // Show for 10 seconds
+          });
+          // Keep modal open so user knows to check their phone
+        }
       } else {
         toast({
-          title: 'Payment Initiated',
-          description: data.message || 'Please approve the payment on your phone.',
+          title: 'Payment Failed',
+          description: data.message || 'Payment could not be processed. Please try again.',
+          variant: 'destructive',
         });
       }
     } catch (error: any) {

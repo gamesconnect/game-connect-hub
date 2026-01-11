@@ -71,8 +71,28 @@ serve(async (req) => {
     const paymentResult = await paymentResponse.json();
     console.log('DCM API response:', paymentResult);
 
-    // Check if payment was successful (adjust based on actual DCM response format)
-    const paymentSuccessful = paymentResponse.ok && paymentResult.status !== 'failed';
+    // Check payment status based on DCM response structure
+    // DCM returns success:true when request was received, but the actual payment status 
+    // is in data.collection.message.status ("200" = initiated/pending, "000" = completed)
+    const collectionStatus = paymentResult?.data?.collection?.message?.status;
+    const isPaymentInitiated = paymentResponse.ok && paymentResult.success === true;
+    const isPaymentCompleted = collectionStatus === '000';
+    const isPaymentPending = collectionStatus === '200';
+
+    // Get transaction ID from the collection data
+    const transactionId = paymentResult?.data?.collection?.data?.transactionId || 
+                          paymentResult?.collectionTransactionID || 
+                          paymentResult?.paymentId;
+
+    // Determine payment status for registration
+    let paymentStatus = 'failed';
+    if (isPaymentCompleted) {
+      paymentStatus = 'completed';
+    } else if (isPaymentInitiated || isPaymentPending) {
+      paymentStatus = 'pending';
+    }
+
+    console.log('Payment status determined:', { paymentStatus, collectionStatus, isPaymentInitiated });
 
     // Create registration record
     const { data: registration, error: registrationError } = await supabase
@@ -84,8 +104,8 @@ serve(async (req) => {
         phone: formattedPhone,
         quantity: quantity || 1,
         total_amount: totalAmount,
-        payment_status: paymentSuccessful ? 'completed' : 'pending',
-        stripe_payment_id: paymentResult.transactionId || paymentResult.reference || null,
+        payment_status: paymentStatus,
+        stripe_payment_id: transactionId || null,
       })
       .select()
       .single();
@@ -95,9 +115,8 @@ serve(async (req) => {
       throw new Error('Failed to create registration');
     }
 
-    // Update available spots for the event
-    if (paymentSuccessful) {
-      // Get current spots and decrement
+    // Update available spots for the event when payment is completed or pending (to reserve spots)
+    if (paymentStatus === 'completed' || paymentStatus === 'pending') {
       const { data: eventData } = await supabase
         .from('events')
         .select('spots')
@@ -112,14 +131,24 @@ serve(async (req) => {
       }
     }
 
+    // Determine response message based on status
+    let responseMessage = '';
+    if (paymentStatus === 'completed') {
+      responseMessage = 'Payment completed successfully!';
+    } else if (paymentStatus === 'pending') {
+      responseMessage = 'Payment initiated! Please check your phone and approve the payment prompt.';
+    } else {
+      responseMessage = 'Payment could not be processed. Please try again.';
+    }
+
     return new Response(
       JSON.stringify({
-        success: paymentSuccessful,
+        success: paymentStatus !== 'failed',
+        paymentStatus: paymentStatus,
         registration: registration,
         paymentResult: paymentResult,
-        message: paymentSuccessful 
-          ? 'Payment processed successfully' 
-          : 'Payment initiated - please complete on your phone',
+        message: responseMessage,
+        transactionId: transactionId,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
