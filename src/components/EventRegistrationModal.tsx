@@ -5,10 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Phone, User, Mail, Minus, Plus } from 'lucide-react';
 import { z } from 'zod';
+import { Tables } from '@/integrations/supabase/types';
+
+type PricingTier = Tables<'event_pricing_tiers'>;
 
 const registrationSchema = z.object({
   fullName: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
@@ -27,6 +31,7 @@ export function EventRegistrationModal({ isOpen, onClose, eventId }: EventRegist
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [selectedTierId, setSelectedTierId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -36,7 +41,7 @@ export function EventRegistrationModal({ isOpen, onClose, eventId }: EventRegist
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch event details
-  const { data: event, isLoading } = useQuery({
+  const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: ['event', eventId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -51,7 +56,33 @@ export function EventRegistrationModal({ isOpen, onClose, eventId }: EventRegist
     enabled: isOpen && !!eventId,
   });
 
-  const totalAmount = event ? event.price * quantity : 0;
+  // Fetch pricing tiers
+  const { data: pricingTiers, isLoading: tiersLoading } = useQuery({
+    queryKey: ['event-pricing-tiers', eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('event_pricing_tiers')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('display_order', { ascending: true });
+      
+      if (error) throw error;
+      return data as PricingTier[];
+    },
+    enabled: isOpen && !!eventId,
+  });
+
+  const isLoading = eventLoading || tiersLoading;
+  const hasTiers = pricingTiers && pricingTiers.length > 0;
+  
+  // Get selected tier or use default event price
+  const selectedTier = hasTiers && selectedTierId 
+    ? pricingTiers.find(t => t.id === selectedTierId) 
+    : null;
+  
+  const unitPrice = selectedTier ? selectedTier.price : (event?.price || 0);
+  const totalAmount = unitPrice * quantity;
+  const maxSpots = selectedTier?.spots ?? event?.spots ?? 10;
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -63,6 +94,15 @@ export function EventRegistrationModal({ isOpen, onClose, eventId }: EventRegist
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate tier selection if tiers exist
+    if (hasTiers && !selectedTierId) {
+      toast({
+        title: 'Please select a ticket type',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Validate form
     const result = registrationSchema.safeParse(formData);
     if (!result.success) {
@@ -88,6 +128,8 @@ export function EventRegistrationModal({ isOpen, onClose, eventId }: EventRegist
           quantity,
           network: formData.network,
           totalAmount,
+          tierId: selectedTierId,
+          tierName: selectedTier?.name,
         },
       });
 
@@ -101,6 +143,7 @@ export function EventRegistrationModal({ isOpen, onClose, eventId }: EventRegist
         onClose();
         setFormData({ fullName: '', email: '', phone: '', network: '' });
         setQuantity(1);
+        setSelectedTierId(null);
       } else {
         toast({
           title: 'Payment Initiated',
@@ -133,22 +176,68 @@ export function EventRegistrationModal({ isOpen, onClose, eventId }: EventRegist
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">Register for Event</DialogTitle>
+          <DialogTitle className="text-xl font-bold">Get Tickets</DialogTitle>
         </DialogHeader>
 
         {event && (
           <div className="bg-muted/50 rounded-lg p-4 mb-4">
             <h3 className="font-semibold text-foreground">{event.title}</h3>
             <p className="text-sm text-muted-foreground">{event.date} • {event.location}</p>
-            <p className="text-lg font-bold text-primary mt-2">
-              {event.currency} {event.price.toFixed(2)} per ticket
-            </p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Pricing Tiers Selection */}
+          {hasTiers && (
+            <div className="space-y-3">
+              <Label>Select Ticket Type</Label>
+              <RadioGroup value={selectedTierId || ''} onValueChange={setSelectedTierId}>
+                {pricingTiers.map((tier) => (
+                  <div
+                    key={tier.id}
+                    className={`flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-colors ${
+                      selectedTierId === tier.id 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                    onClick={() => setSelectedTierId(tier.id)}
+                  >
+                    <RadioGroupItem value={tier.id} id={tier.id} className="mt-1" />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <Label htmlFor={tier.id} className="font-semibold cursor-pointer">
+                          {tier.name}
+                        </Label>
+                        <span className="font-bold text-primary">
+                          {event?.currency} {tier.price.toFixed(2)}
+                        </span>
+                      </div>
+                      {tier.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{tier.description}</p>
+                      )}
+                      {tier.spots !== null && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {tier.spots > 0 ? `${tier.spots} spots left` : 'Sold out'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+          )}
+
+          {/* Default price display when no tiers */}
+          {!hasTiers && event && (
+            <div className="text-center p-4 bg-muted/50 rounded-lg">
+              <p className="text-lg font-bold text-primary">
+                {event.currency} {event.price.toFixed(2)} per ticket
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
             <div className="relative">
@@ -231,8 +320,8 @@ export function EventRegistrationModal({ isOpen, onClose, eventId }: EventRegist
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => setQuantity(Math.min(event?.spots || 10, quantity + 1))}
-                disabled={quantity >= (event?.spots || 10)}
+                onClick={() => setQuantity(Math.min(maxSpots, quantity + 1))}
+                disabled={quantity >= maxSpots}
               >
                 <Plus className="w-4 h-4" />
               </Button>
@@ -251,7 +340,7 @@ export function EventRegistrationModal({ isOpen, onClose, eventId }: EventRegist
           <Button
             type="submit"
             className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-            disabled={isSubmitting}
+            disabled={isSubmitting || (hasTiers && !selectedTierId)}
           >
             {isSubmitting ? (
               <>

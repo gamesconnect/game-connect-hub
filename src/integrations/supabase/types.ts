@@ -89,6 +89,47 @@ export type Database = {
         }
         Relationships: []
       }
+      event_pricing_tiers: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          event_id: string
+          id: string
+          name: string
+          price: number
+          spots: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          event_id: string
+          id?: string
+          name: string
+          price?: number
+          spots?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          event_id?: string
+          id?: string
+          name?: string
+          price?: number
+          spots?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_pricing_tiers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           additional_info: Json | null
