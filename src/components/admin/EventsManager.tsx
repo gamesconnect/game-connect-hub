@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { ImageUpload } from '@/components/admin/ImageUpload';
-import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { EventPricingTiersManager } from '@/components/admin/EventPricingTiersManager';
+import { Plus, Pencil, Trash2, Loader2, Tag } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
 type Event = Tables<'events'>;
@@ -50,6 +51,7 @@ export function EventsManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [formData, setFormData] = useState<EventFormData>(initialFormData);
+  const [managingTiersFor, setManagingTiersFor] = useState<Event | null>(null);
 
   const imageUpload = useImageUpload({
     bucket: 'events',
@@ -147,6 +149,17 @@ export function EventsManager() {
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  // Show pricing tiers manager if managing tiers for an event
+  if (managingTiersFor) {
+    return (
+      <EventPricingTiersManager
+        eventId={managingTiersFor.id}
+        eventTitle={managingTiersFor.title}
+        onBack={() => setManagingTiersFor(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -320,6 +333,9 @@ export function EventsManager() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
+                    <Button variant="ghost" size="icon" onClick={() => setManagingTiersFor(event)} title="Manage Pricing Tiers">
+                      <Tag className="w-4 h-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
                       <Pencil className="w-4 h-4" />
                     </Button>
