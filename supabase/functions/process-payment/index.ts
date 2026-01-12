@@ -33,7 +33,8 @@ serve(async (req) => {
       phone, 
       quantity, 
       network,
-      totalAmount 
+      totalAmount,
+      tierName,
     } = await req.json();
 
     console.log('Processing payment request:', { eventId, fullName, email, phone, quantity, network, totalAmount });
@@ -115,14 +116,15 @@ serve(async (req) => {
       throw new Error('Failed to create registration');
     }
 
+    // Fetch event details for email
+    const { data: eventData } = await supabase
+      .from('events')
+      .select('title, date, location, currency, spots')
+      .eq('id', eventId)
+      .single();
+
     // Update available spots for the event when payment is completed or pending (to reserve spots)
     if (paymentStatus === 'completed' || paymentStatus === 'pending') {
-      const { data: eventData } = await supabase
-        .from('events')
-        .select('spots')
-        .eq('id', eventId)
-        .single();
-      
       if (eventData) {
         await supabase
           .from('events')
@@ -131,12 +133,47 @@ serve(async (req) => {
       }
     }
 
+    // Send confirmation email if payment is completed
+    if (paymentStatus === 'completed' && eventData) {
+      try {
+        const emailPayload = {
+          email: email,
+          fullName: fullName,
+          eventTitle: eventData.title,
+          eventDate: eventData.date,
+          eventLocation: eventData.location,
+          quantity: quantity || 1,
+          totalAmount: totalAmount,
+          currency: eventData.currency || 'GHS',
+          transactionId: transactionId,
+          tierName: tierName,
+        };
+
+        console.log('Sending confirmation email:', emailPayload);
+
+        const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-registration-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify(emailPayload),
+        });
+
+        const emailResult = await emailResponse.json();
+        console.log('Email send result:', emailResult);
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError);
+        // Don't fail the payment if email fails
+      }
+    }
+
     // Determine response message based on status
     let responseMessage = '';
     if (paymentStatus === 'completed') {
-      responseMessage = 'Payment completed successfully!';
+      responseMessage = 'Payment completed successfully! A confirmation email has been sent.';
     } else if (paymentStatus === 'pending') {
-      responseMessage = 'Payment initiated! Please check your phone and approve the payment prompt.';
+      responseMessage = 'Payment initiated! Please check your phone and approve the payment prompt. You will receive a confirmation email once payment is complete.';
     } else {
       responseMessage = 'Payment could not be processed. Please try again.';
     }
