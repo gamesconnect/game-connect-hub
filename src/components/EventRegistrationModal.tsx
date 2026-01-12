@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ interface EventRegistrationModalProps {
 }
 
 export function EventRegistrationModal({ isOpen, onClose, eventId }: EventRegistrationModalProps) {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -136,22 +138,32 @@ export function EventRegistrationModal({ isOpen, onClose, eventId }: EventRegist
       if (error) throw error;
 
       if (data.success) {
+        const registrationId = data.registrationId || data.registration?.id;
+        
         if (data.paymentStatus === 'completed') {
           toast({
             title: 'Payment Successful! 🎉',
-            description: 'Your registration is confirmed. Check your email for details.',
+            description: 'Your registration is confirmed. Redirecting to your ticket...',
           });
           onClose();
           setFormData({ fullName: '', email: '', phone: '', network: '' });
           setQuantity(1);
           setSelectedTierId(null);
+          // Redirect to confirmation page
+          if (registrationId) {
+            navigate(`/registration/${registrationId}`);
+          }
         } else if (data.paymentStatus === 'pending') {
           toast({
             title: 'Payment Pending 📱',
-            description: data.message || 'Please check your phone and approve the payment prompt to complete registration.',
-            duration: 10000, // Show for 10 seconds
+            description: data.message || 'Please check your phone and approve the payment prompt.',
+            duration: 10000,
           });
-          // Keep modal open so user knows to check their phone
+          onClose();
+          // Still redirect to confirmation page so they can bookmark it
+          if (registrationId) {
+            navigate(`/registration/${registrationId}`);
+          }
         }
       } else {
         toast({

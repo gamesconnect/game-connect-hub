@@ -15,6 +15,7 @@ import Contact from "./pages/Contact";
 import GameDay from "./pages/GameDay";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
+import RegistrationConfirmation from "./pages/RegistrationConfirmation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/blog/:id" element={<MainLayout><BlogPost /></MainLayout>} />
             <Route path="/contact" element={<MainLayout><Contact /></MainLayout>} />
             <Route path="/game-day" element={<MainLayout><GameDay /></MainLayout>} />
+            <Route path="/registration/:id" element={<MainLayout><RegistrationConfirmation /></MainLayout>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
             
