@@ -168,6 +168,41 @@ serve(async (req) => {
       }
     }
 
+    // Send admin notification for all registrations
+    if (eventData) {
+      try {
+        const adminNotificationPayload = {
+          eventTitle: eventData.title,
+          attendeeName: fullName,
+          attendeeEmail: email,
+          attendeePhone: formattedPhone,
+          quantity: quantity || 1,
+          totalAmount: totalAmount,
+          currency: eventData.currency || 'GHS',
+          paymentStatus: paymentStatus,
+          registrationId: registration.id,
+          tierName: tierName,
+        };
+
+        console.log('Sending admin notification:', adminNotificationPayload);
+
+        const adminResponse = await fetch(`${supabaseUrl}/functions/v1/send-admin-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify(adminNotificationPayload),
+        });
+
+        const adminResult = await adminResponse.json();
+        console.log('Admin notification result:', adminResult);
+      } catch (adminError) {
+        console.error('Error sending admin notification:', adminError);
+        // Don't fail the payment if admin notification fails
+      }
+    }
+
     // Determine response message based on status
     let responseMessage = '';
     if (paymentStatus === 'completed') {
@@ -183,6 +218,7 @@ serve(async (req) => {
         success: paymentStatus !== 'failed',
         paymentStatus: paymentStatus,
         registration: registration,
+        registrationId: registration.id,
         paymentResult: paymentResult,
         message: responseMessage,
         transactionId: transactionId,
