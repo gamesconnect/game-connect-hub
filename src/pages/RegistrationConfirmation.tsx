@@ -1,6 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +28,7 @@ import { format } from 'date-fns';
 
 export default function RegistrationConfirmation() {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
 
   const { data: registration, isLoading, error } = useQuery({
     queryKey: ['registration', id],
@@ -51,6 +54,43 @@ export default function RegistrationConfirmation() {
     },
     enabled: !!id,
   });
+
+  // Subscribe to realtime updates for this registration
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`registration-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'registrations',
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          const newStatus = payload.new.payment_status;
+          const oldStatus = payload.old?.payment_status;
+          
+          if (newStatus !== oldStatus) {
+            // Invalidate and refetch the query
+            queryClient.invalidateQueries({ queryKey: ['registration', id] });
+            
+            if (newStatus === 'completed') {
+              toast.success('Payment confirmed! Your registration is now complete.');
+            } else if (newStatus === 'failed') {
+              toast.error('Payment failed. Please try again or contact support.');
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, queryClient]);
 
   const getStatusConfig = (status: string) => {
     switch (status) {
