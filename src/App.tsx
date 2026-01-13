@@ -16,6 +16,7 @@ import GameDay from "./pages/GameDay";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import RegistrationConfirmation from "./pages/RegistrationConfirmation";
+import CheckIn from "./pages/CheckIn";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/registration/:id" element={<MainLayout><RegistrationConfirmation /></MainLayout>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/check-in" element={<CheckIn />} />
             
             {/* Catch-all route */}
             <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />

@@ -252,6 +252,8 @@ export type Database = {
       }
       registrations: {
         Row: {
+          checked_in: boolean
+          checked_in_at: string | null
           created_at: string
           email: string
           event_id: string
@@ -265,6 +267,8 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          checked_in?: boolean
+          checked_in_at?: string | null
           created_at?: string
           email: string
           event_id: string
@@ -278,6 +282,8 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          checked_in?: boolean
+          checked_in_at?: string | null
           created_at?: string
           email?: string
           event_id?: string
