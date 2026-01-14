@@ -3,12 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Footer } from '@/components/Footer';
+import { DownloadableTicketsList } from '@/components/DownloadableTicket';
 import { 
   Calendar, 
   MapPin, 
@@ -19,7 +19,6 @@ import {
   CheckCircle2, 
   Clock, 
   XCircle,
-  Download,
   Share2,
   ArrowLeft,
   Loader2
@@ -132,11 +131,8 @@ export default function RegistrationConfirmation() {
       }
     } else {
       navigator.clipboard.writeText(url);
+      toast.success('Link copied to clipboard!');
     }
-  };
-
-  const handlePrint = () => {
-    window.print();
   };
 
   if (isLoading) {
@@ -172,12 +168,6 @@ export default function RegistrationConfirmation() {
   const statusConfig = getStatusConfig(registration.payment_status);
   const StatusIcon = statusConfig.icon;
   const event = registration.events;
-  const qrData = JSON.stringify({
-    registrationId: registration.id,
-    eventId: registration.event_id,
-    name: registration.full_name,
-    quantity: registration.quantity,
-  });
 
   return (
     <>
@@ -285,25 +275,23 @@ export default function RegistrationConfirmation() {
 
               <Separator />
 
-              {/* QR Code */}
-              <div className="flex flex-col items-center py-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                  Your Ticket QR Code
-                </h3>
-                <div className="bg-white p-4 rounded-xl shadow-inner">
-                  <QRCodeSVG 
-                    value={qrData} 
-                    size={180}
-                    level="H"
-                    includeMargin={true}
+              {/* Downloadable Tickets */}
+              {registration.payment_status === 'completed' && (
+                <>
+                  <DownloadableTicketsList
+                    registrationId={registration.id}
+                    eventTitle={event?.title || ''}
+                    eventDate={event?.date || ''}
+                    eventTime={event?.time}
+                    eventLocation={event?.location || ''}
+                    attendeeName={registration.full_name}
+                    quantity={registration.quantity}
+                    currency={event?.currency || 'GHS'}
+                    eventImageUrl={event?.image_url}
                   />
-                </div>
-                <p className="text-xs text-muted-foreground mt-3 text-center">
-                  Show this QR code at the event entrance
-                </p>
-              </div>
-
-              <Separator />
+                  <Separator />
+                </>
+              )}
 
               {/* Payment Summary */}
               <div className="bg-muted/50 rounded-lg p-4">
@@ -325,10 +313,6 @@ export default function RegistrationConfirmation() {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 print:hidden">
-                <Button onClick={handlePrint} variant="outline" className="flex-1">
-                  <Download className="w-4 h-4 mr-2" />
-                  Save / Print
-                </Button>
                 <Button onClick={handleShare} variant="outline" className="flex-1">
                   <Share2 className="w-4 h-4 mr-2" />
                   Share
