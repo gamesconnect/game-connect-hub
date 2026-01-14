@@ -133,8 +133,9 @@ serve(async (req) => {
       }
     }
 
-    // Send confirmation email if payment is completed
+    // Send confirmation email and ticket PDFs if payment is completed
     if (paymentStatus === 'completed' && eventData) {
+      // Send confirmation email
       try {
         const emailPayload = {
           email: email,
@@ -165,6 +166,39 @@ serve(async (req) => {
       } catch (emailError) {
         console.error('Error sending confirmation email:', emailError);
         // Don't fail the payment if email fails
+      }
+
+      // Send ticket PDFs via email
+      try {
+        const ticketPayload = {
+          email: email,
+          fullName: fullName,
+          eventTitle: eventData.title,
+          eventDate: eventData.date,
+          eventLocation: eventData.location,
+          quantity: quantity || 1,
+          registrationId: registration.id,
+          currency: eventData.currency || 'GHS',
+          totalAmount: totalAmount,
+          tierName: tierName,
+        };
+
+        console.log('Sending ticket emails:', ticketPayload);
+
+        const ticketResponse = await fetch(`${supabaseUrl}/functions/v1/send-ticket-emails`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify(ticketPayload),
+        });
+
+        const ticketResult = await ticketResponse.json();
+        console.log('Ticket email send result:', ticketResult);
+      } catch (ticketError) {
+        console.error('Error sending ticket emails:', ticketError);
+        // Don't fail the payment if ticket email fails
       }
     }
 
