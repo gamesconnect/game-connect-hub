@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Users, Clock, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/browserClient';
 import { EventRegistrationModal } from '@/components/EventRegistrationModal';
 
 export default function Events() {
