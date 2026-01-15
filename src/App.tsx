@@ -16,6 +16,7 @@ import GameDay from "./pages/GameDay";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import RegistrationConfirmation from "./pages/RegistrationConfirmation";
+import PaymentPending from "./pages/PaymentPending";
 import CheckIn from "./pages/CheckIn";
 import NotFound from "./pages/NotFound";
 
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/contact" element={<MainLayout><Contact /></MainLayout>} />
             <Route path="/game-day" element={<MainLayout><GameDay /></MainLayout>} />
             <Route path="/registration/:id" element={<MainLayout><RegistrationConfirmation /></MainLayout>} />
+            <Route path="/payment-pending/:id" element={<MainLayout><PaymentPending /></MainLayout>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/check-in" element={<CheckIn />} />
