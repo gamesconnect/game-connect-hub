@@ -4,7 +4,7 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Trophy, Users, Clock, Gamepad2, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/browserClient';
 import { EventRegistrationModal } from '@/components/EventRegistrationModal';
 
 const gameDayFeatures = [

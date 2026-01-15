@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Calendar, User, Clock, ArrowLeft, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/browserClient';
 
 export default function BlogPost() {
   const { id } = useParams<{ id: string }>();

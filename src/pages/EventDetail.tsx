@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Users, Clock, ArrowLeft, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/browserClient';
 import { EventRegistrationModal } from '@/components/EventRegistrationModal';
 import { Tables } from '@/integrations/supabase/types';
 
